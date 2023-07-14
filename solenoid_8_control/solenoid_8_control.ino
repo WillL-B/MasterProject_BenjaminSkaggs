@@ -11,13 +11,13 @@ const byte VALVE_PAIRS[4][2] = { { BASE_PIN_1, MEDIA_PIN_1 }, { BASE_PIN_2, MEDI
 const byte VALVE_PAIRS_ENABLED = 4;  // number of valve pairs we have
 const byte TASKS = 10;               // maximum number of tasks to carry out
 
-// if SCHEDULES is type byte (to save memory), single task times cannot be longer than 4.25hrs and concentrations cannot be above 2.55M unless normalized to percents
+// if SCHEDULES is type byte (to save memory), single task times cannot be longer than 4.25hrs and concentrations cannot be above 2.55M unless normalized to percents.
 byte SCHEDULES[VALVE_PAIRS_ENABLED][TASKS][4];               // for each of 4 pins, each set of 4 values is a task, initialized empty as 10 tasks - default task will be to do absolutely nothing. 4 values are profile, duration, initial, final
 byte scheduled_items[VALVE_PAIRS_ENABLED] = { 0 };           // # of items that have been added to each valve pair's list of tasks
 byte current_task_index[VALVE_PAIRS_ENABLED] = { 0 };        // index of schedule in SCHEDULES[4][10]
-unsigned int task_start_time[VALVE_PAIRS_ENABLED] = { 0 };   // time a task starts in ms, reset to 0 each task
-unsigned int cycle_start_time[VALVE_PAIRS_ENABLED] = { 0 };  // time a cycle starts in ms, reset to 0 each cycle
-unsigned short current_cycles[VALVE_PAIRS_ENABLED] = { 0 };  // total time in cycles for a task, reset to 0 each task
+uint32_t task_start_time[VALVE_PAIRS_ENABLED] = { 0 };   // time a task starts in ms, reset to 0 each task
+uint32_t cycle_start_time[VALVE_PAIRS_ENABLED] = { 0 };  // time a cycle starts in ms, reset to 0 each cycle
+uint16_t current_cycles[VALVE_PAIRS_ENABLED] = { 0 };    // total time in cycles for a task, reset to 0 each task
 
 const unsigned short TIME_PER_CYCLE = 500;                        // time in milliseconds for each cycle, cannot be 0
 float media_cycle_portion[VALVE_PAIRS_ENABLED] = { 0 };           // portion of cycle dedicated to outputting media for each valve pair
@@ -43,18 +43,18 @@ void setup() {
 
   // ** valve pair 0 **
   flat(0, 1, 0.2);
-  
+
   // ** valve pair 1 **
-  flat(1, 1, 0.2);
-  linear_ramp(1, 1, 0.0, 0.4);
+    linear_ramp(1, 1, 0.0, 0.4);
 
   // ** valve pair 2 **
   flat(2, 1, 0.4);
 
+
   // ** valve pair 3 **
   quadratic_ramp(3, 1, 0.1, 0.4);
-
-
+  flat(3, 1, 0.1);
+  linear_ramp(3, 1, 0.0, 0.4);
 
 
 
@@ -66,6 +66,7 @@ void setup() {
     digitalWrite(VALVE_PAIRS[valve_pair][0], LOW);  // set all pins to low voltage (valves closed)
     digitalWrite(VALVE_PAIRS[valve_pair][1], LOW);
     cycle_start_time[valve_pair] = { millis() };
+    task_start_time[valve_pair] = { millis() };
   }
 
   pinMode(LED_BUILTIN, OUTPUT);
@@ -92,7 +93,7 @@ void loop() {
       // select correct calculation for given schedule
       switch (SCHEDULES[valve_pair][current_task_index[valve_pair]][0]) {
         case 'F':
-          pulse(valve_pair, flat_calc(valve_pair, (float)SCHEDULES[valve_pair][current_task_index[valve_pair]][2] / 100));  // division converts stored byte value back to float
+          pulse(valve_pair, flat_calc(valve_pair, (float)SCHEDULES[valve_pair][current_task_index[valve_pair]][2] / 100));  // division converts stored integer value back to float
           break;
         case 'L':
           pulse(valve_pair, linear_calc(valve_pair, SCHEDULES[valve_pair][current_task_index[valve_pair]][1], (float)SCHEDULES[valve_pair][current_task_index[valve_pair]][2] / 100, (float)SCHEDULES[valve_pair][current_task_index[valve_pair]][3] / 100));
@@ -123,7 +124,7 @@ void pulse(byte valve_pair, float fraction_media) {
   if (millis() <= (cycle_start_time[valve_pair] + fraction_media * TIME_PER_CYCLE)) {  // media fraction of cycle, e.g., 0-300ms
     digitalWrite(VALVE_PAIRS[valve_pair][0], LOW);                                     // media on
     digitalWrite(VALVE_PAIRS[valve_pair][1], HIGH);                                    // base off
-  } else if (millis() <= cycle_start_time[valve_pair] + TIME_PER_CYCLE) {              // base fraction of cycle, e.g., 301-1000ms
+  } else if (millis() <= cycle_start_time[valve_pair] + TIME_PER_CYCLE) {  // base fraction of cycle, e.g., 301-1000ms
     digitalWrite(VALVE_PAIRS[valve_pair][0], HIGH);
     digitalWrite(VALVE_PAIRS[valve_pair][1], LOW);
   }
@@ -169,11 +170,11 @@ float quadratic_calc(int valve_pair, int duration, float initial_conc, float fin
 }
 
 // converts minutes to cycles
-int ctime(int time_minutes) {
+uint32_t ctime(int time_minutes) {
   return (time_minutes * 60000 / TIME_PER_CYCLE);
 }
 
 // converts minutes to milliseconds
-int mtime(int time_minutes) {
+uint32_t mtime(int time_minutes) {
   return (time_minutes * 60000);
 }
