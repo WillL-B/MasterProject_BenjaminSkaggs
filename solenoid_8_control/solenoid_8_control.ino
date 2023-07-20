@@ -70,6 +70,7 @@ void setup() {
   }
 
   pinMode(LED_BUILTIN, OUTPUT);
+  delay(2000);
 }
 
 void loop() {
