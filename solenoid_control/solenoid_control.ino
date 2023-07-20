@@ -49,7 +49,7 @@ void pulse(float fraction_duty) {  // intended fraction of duty cycle, generates
     delay(TIME_PER_CYCLE);
   }
 
-  if (fraction_duty >= 1) {  // no turn off media, only on
+  else if (fraction_duty >= 1) {  // no turn off media, only on
     digitalWrite(MEDIA_PIN_1, HIGH);
     digitalWrite(BASE_PIN_1, LOW);
     delay(TIME_PER_CYCLE);
