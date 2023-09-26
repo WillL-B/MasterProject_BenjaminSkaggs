@@ -94,10 +94,10 @@ void loop() {
 
       // select correct calculation for given schedule
       switch (SCHEDULES[valve_pair][current_task_index[valve_pair]][0]) {
-        case 'F':
-          pulse(valve_pair, flat_calc(valve_pair, (float)SCHEDULES[valve_pair][current_task_index[valve_pair]][2] / 100));  // division converts stored integer value back to float
+        case 'F': // these char values are interpreted as integers
+          pulse(valve_pair, flat_calc(valve_pair, (float)SCHEDULES[valve_pair][current_task_index[valve_pair]][2] / 100));  // division converts stored integer value for concentration back to float
           break;
-        case 'L':
+        case 'L': // SCHEDULES[x][x][2] and [x][x][3] are initial and final concentrations for a task on a valve pair
           pulse(valve_pair, linear_calc(valve_pair, SCHEDULES[valve_pair][current_task_index[valve_pair]][1], (float)SCHEDULES[valve_pair][current_task_index[valve_pair]][2] / 100, (float)SCHEDULES[valve_pair][current_task_index[valve_pair]][3] / 100));
           break;
         case 'Q':
