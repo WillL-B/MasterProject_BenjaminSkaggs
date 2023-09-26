@@ -11,7 +11,7 @@ const byte VALVE_PAIRS[4][2] = { { BASE_PIN_1, MEDIA_PIN_1 }, { BASE_PIN_2, MEDI
 const byte VALVE_PAIRS_ENABLED = 4;  // number of valve pairs we have
 const byte TASKS = 10;               // maximum number of tasks to carry out
 
-// if SCHEDULES is type byte (to save memory), single task times cannot be longer than 4.25hrs and concentrations cannot be above 2.55M unless normalized to percents.
+// if SCHEDULES is type byte (to save memory), single task times cannot be longer than 4.25hrs and concentrations cannot be above 2.55M unless normalized to percents. 
 byte SCHEDULES[VALVE_PAIRS_ENABLED][TASKS][4];               // for each of 4 pins, each set of 4 values is a task, initialized empty as 10 tasks - default task will be to do absolutely nothing. 4 values are profile, duration, initial, final
 byte scheduled_items[VALVE_PAIRS_ENABLED] = { 0 };           // # of items that have been added to each valve pair's list of tasks
 byte current_task_index[VALVE_PAIRS_ENABLED] = { 0 };        // index of schedule in SCHEDULES[4][10]
@@ -34,8 +34,9 @@ const float MEDIA_CONCENTRATION[VALVE_PAIRS_ENABLED] = { 0.4, 0.4, 0.4, 0.4 };  
 // ** set concentration of input media **
 
 void setup() {
-
-  // ** setup schedule here **
+  delay(2000); // delay to prevent upload hiccup disrupting valve control at start
+  
+  // ** setup schedule here, maximum of 10 tasks per valve pair **
 
   // flat(valve pair # (0-3), duration (minutes), desired concentration);
   // linear_ramp(valve pair # (0-3), duration (minutes), initial concentration, final concentration);
@@ -56,7 +57,7 @@ void setup() {
   flat(3, 1, 0.1);
   linear_ramp(3, 1, 0.0, 0.4);
 
-
+  
 
   // sets all pins to output mode and closes valves
   for (byte valve_pair = 0; valve_pair < VALVE_PAIRS_ENABLED; valve_pair++) {
@@ -65,12 +66,12 @@ void setup() {
 
     digitalWrite(VALVE_PAIRS[valve_pair][0], LOW);  // set all pins to low voltage (valves closed)
     digitalWrite(VALVE_PAIRS[valve_pair][1], LOW);
-    cycle_start_time[valve_pair] = { millis() };
+    cycle_start_time[valve_pair] = { millis() }; // set start time for first cycles and tasks to current time
     task_start_time[valve_pair] = { millis() };
   }
 
   pinMode(LED_BUILTIN, OUTPUT);
-  delay(2000);
+
 }
 
 void loop() {
@@ -81,10 +82,10 @@ void loop() {
 
       if (millis() - cycle_start_time[valve_pair] >= TIME_PER_CYCLE) {  // if cycle is done, update cycle count and begin new cycle
         cycle_start_time[valve_pair] = millis();
-        current_cycles[valve_pair]++;
+        current_cycles[valve_pair]++; // incremented to track current progress through a task and adjust calculation
       }
 
-      // this evaluates to true for non-activated valves, including finished valve_pairs. Keeps base on for extra (maximum of a few ms it seems, simulation really grinds to a slow during this) then shuts off.
+      // this evaluates to true for non-activated valves, including finished valve_pairs (because empty tasks have length 0), resulting in rapid conclusion of non-filled schedules.
       if (millis() - task_start_time[valve_pair] >= mtime(SCHEDULES[valve_pair][current_task_index[valve_pair]][1])) {  // conclude a task if it reaches its time limit and initiate the next one
         current_task_index[valve_pair]++;
         task_start_time[valve_pair] = millis();
@@ -131,7 +132,7 @@ void pulse(byte valve_pair, float fraction_media) {
   }
 }
 
-// fills in schedule values for a single task and increases number of tasks currently scheduled for a pair of valves
+// fills in schedule values for a single task and increases number of tasks currently scheduled for a pair of valves.
 void schedule(byte valve_pair, char profile, int duration, float initial_conc, float final_conc) {
   SCHEDULES[valve_pair][scheduled_items[valve_pair]][0] = profile;
   SCHEDULES[valve_pair][scheduled_items[valve_pair]][1] = duration;
@@ -156,7 +157,7 @@ void quadratic_ramp(int valve_pair, int duration, float initial_conc, float fina
 }
 
 // performs "calculations" for a flat gradient
-float flat_calc(int valve_pair, float set_conc) {  // duration in minutes // this one doesn't necessarily need valve_pair, can be fed that information externally
+float flat_calc(int valve_pair, float set_conc) {  
   return set_conc / MEDIA_CONCENTRATION[valve_pair];
 }
 
